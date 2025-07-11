@@ -9,22 +9,28 @@ app.use(
   createProxyMiddleware({
     changeOrigin: true,
     secure: false,
-    target: 'http://example.com', // este valor se sobrescribe por router()
+
+    // Aquí se ignora el target base porque usaremos `router`
+    target: 'http://example.com',
+
     router: (req) => {
-      const rawUrl = req.url?.substring(1); // elimina el "/" inicial
+      const rawUrl = req.url?.substring(1); // quitar la barra inicial
       try {
-        const finalUrl = new URL(rawUrl);
-        return finalUrl.origin;
+        const parsed = new URL(rawUrl);
+        console.log(`🔁 Redirigiendo a: ${parsed.origin}`);
+        return parsed.origin;
       } catch (err) {
-        console.error('❌ Error al construir la URL:', err.message);
+        console.error('❌ URL inválida:', rawUrl);
         return null;
       }
     },
+
     pathRewrite: (path, req) => {
-      const url = req.url?.substring(1);
-      const pathOnly = url?.replace(/^https?:\/\/[^/]+/, '');
-      return pathOnly || '/';
+      const rawUrl = req.url?.substring(1);
+      const match = rawUrl?.match(/^https?:\/\/[^/]+(\/.*)?$/);
+      return match?.[1] || '/';
     },
+
     onError: (err, req, res) => {
       console.error('❌ Proxy error:', err);
       res.status(500).send('Proxy error');
@@ -33,6 +39,5 @@ app.use(
 );
 
 app.listen(PORT, () => {
-  console.log(`Proxy corriendo en puerto ${PORT}`);
+  console.log(`✅ Proxy corriendo en puerto ${PORT}`);
 });
-
